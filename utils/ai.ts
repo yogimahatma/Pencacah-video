@@ -1,21 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize the client
-// Fix: Use process.env.API_KEY exclusively as per guidelines to resolve TS error with import.meta.env
-const apiKey = process.env.API_KEY;
+// Fungsi untuk membuat prompt video
+// Sekarang menerima apiKey sebagai parameter agar bisa dinamis (dari input user atau env)
+export const generateVideoPrompt = async (imageBlob: Blob, userApiKey?: string): Promise<string> => {
+  // Prioritaskan key dari input user, jika tidak ada baru cari dari environment
+  // @ts-ignore - process.env handling for Vite
+  const apiKey = userApiKey || process.env.API_KEY || import.meta.env?.VITE_API_KEY;
 
-if (!apiKey) {
-  console.warn("API Key tidak ditemukan. Pastikan process.env.API_KEY diset.");
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || '' });
-
-export const generateVideoPrompt = async (imageBlob: Blob): Promise<string> => {
   if (!apiKey) {
-    return "API Key belum dikonfigurasi.";
+    throw new Error("API Key diperlukan. Mohon masukkan API Key Google Gemini Anda.");
   }
 
   try {
+    // Inisialisasi client setiap kali request dengan key yang aktif
+    const ai = new GoogleGenAI({ apiKey: apiKey });
+    
     const base64Data = await blobToBase64(imageBlob);
     
     const response = await ai.models.generateContent({
@@ -36,9 +35,13 @@ export const generateVideoPrompt = async (imageBlob: Blob): Promise<string> => {
     });
 
     return response.text || "Tidak ada respons dari AI.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Generation Error:", error);
-    return "Gagal menghasilkan prompt. Pastikan API Key valid atau coba lagi nanti.";
+    // Menangani error spesifik
+    if (error.message?.includes('API key')) {
+       throw new Error("API Key tidak valid atau kadaluarsa.");
+    }
+    throw new Error("Gagal menghubungi AI. Cek koneksi internet atau kuota API.");
   }
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
-import { Settings, Play, Download, Trash2, AlertCircle, Film, Sparkles } from 'lucide-react';
+import { Settings, Play, Download, Trash2, AlertCircle, Film, Sparkles, KeyRound } from 'lucide-react';
 import { extractFramesFromVideo } from './utils/videoProcessor';
 import { generateVideoPrompt } from './utils/ai';
 import { FrameData, AppState } from './types';
@@ -17,6 +17,19 @@ export default function App() {
   const [progress, setProgress] = useState<number>(0);
   const [log, setLog] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  
+  // API Key State
+  const [userApiKey, setUserApiKey] = useState<string>("");
+  const [showApiKeyInput, setShowApiKeyInput] = useState<boolean>(false);
+
+  // Cek apakah ada environment key
+  useEffect(() => {
+    // @ts-ignore
+    const envKey = process.env.API_KEY || import.meta.env?.VITE_API_KEY;
+    if (!envKey) {
+      setShowApiKeyInput(true);
+    }
+  }, []);
 
   // Cleanup object URLs on unmount or reset
   useEffect(() => {
@@ -66,10 +79,23 @@ export default function App() {
   const handleGenerateAiPrompts = async () => {
     if (frames.length === 0) return;
 
+    // Validasi API Key sebelum mulai
+    // @ts-ignore
+    const envKey = process.env.API_KEY || import.meta.env?.VITE_API_KEY;
+    const activeKey = userApiKey || envKey;
+
+    if (!activeKey) {
+      setError("API Key diperlukan untuk fitur AI. Masukkan API Key di bagian atas.");
+      setShowApiKeyInput(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     const previousState = appState;
     setAppState(AppState.ANALYZING);
     setLog("Mempersiapkan analisis AI...");
     setProgress(0);
+    setError(null);
 
     const newFrames = [...frames];
     let processedCount = 0;
@@ -84,12 +110,16 @@ export default function App() {
       setLog(`Menganalisis frame ${i + 1}/${newFrames.length} dengan Gemini AI...`);
       
       try {
-        const prompt = await generateVideoPrompt(newFrames[i].blob);
+        const prompt = await generateVideoPrompt(newFrames[i].blob, activeKey);
         newFrames[i] = { ...newFrames[i], aiPrompt: prompt };
-        // Update state periodically so UI refreshes
         setFrames([...newFrames]);
-      } catch (e) {
+      } catch (e: any) {
         console.error("Error creating prompt for frame " + i, e);
+        if (e.message && e.message.includes("API Key")) {
+           setError(e.message);
+           setAppState(previousState);
+           return; // Stop process if key is invalid
+        }
       }
 
       processedCount++;
@@ -145,6 +175,30 @@ export default function App() {
             membuat prompt video generasi secara otomatis.
           </p>
         </div>
+
+        {/* API Key Input Section (Visible if env key missing or user wants to enter one) */}
+        {showApiKeyInput && (
+          <div className="bg-white rounded-xl shadow-sm border border-orange-200 p-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                <KeyRound size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-slate-800 mb-1">Pengaturan API Key</h3>
+                <p className="text-xs text-slate-500 mb-3">
+                  Masukkan API Key Gemini Anda untuk menggunakan fitur AI. Key Anda aman dan hanya disimpan di browser ini.
+                </p>
+                <input
+                  type="password"
+                  value={userApiKey}
+                  onChange={(e) => setUserApiKey(e.target.value)}
+                  placeholder="Paste API Key di sini (AIza...)"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
