@@ -1,10 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize the client
-// The API key is guaranteed to be available in process.env.API_KEY per instructions
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Fix: Use process.env.API_KEY exclusively as per guidelines to resolve TS error with import.meta.env
+const apiKey = process.env.API_KEY;
+
+if (!apiKey) {
+  console.warn("API Key tidak ditemukan. Pastikan process.env.API_KEY diset.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 export const generateVideoPrompt = async (imageBlob: Blob): Promise<string> => {
+  if (!apiKey) {
+    return "API Key belum dikonfigurasi.";
+  }
+
   try {
     const base64Data = await blobToBase64(imageBlob);
     
