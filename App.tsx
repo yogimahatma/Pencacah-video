@@ -190,7 +190,7 @@ export default function App() {
                       value={interval}
                       onChange={(e) => setInterval(Math.max(0.1, parseFloat(e.target.value)))}
                       disabled={appState !== AppState.IDLE && appState !== AppState.ERROR}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 transition-all"
+                      className="w-full pl-10 pr-4 py-2 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 transition-all"
                     />
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
