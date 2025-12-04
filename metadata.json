@@ -1,0 +1,5 @@
+{
+  "name": "Ekstraktor Frame Video",
+  "description": "Aplikasi berbasis web untuk mengekstrak frame dari video setiap N detik secara otomatis. Berjalan sepenuhnya di browser tanpa mengunggah data ke server.",
+  "requestFramePermissions": []
+}
